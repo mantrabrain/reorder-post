@@ -2,8 +2,8 @@
 if (!class_exists('MB_Reorder_Post')) {
     class MB_Reorder_Post
     {
-        public $admin_options_name = "deefuse_ReOrderSettingAdminOptions";
-        public $ordered_categories_option_name = "deefuse_ReOrderOrderedCategoriesOptions";
+        public $admin_options_name = "mb_reorder_settings_admin_options";
+        public $ordered_categories_option_name = "mb_reorder_ordered_categories_options";
 
         public $mb_reorder_posts_db_version = "1.0";
         public $mb_reorder_post_version_name = "mb_reorder_posts_db_version";
@@ -26,11 +26,11 @@ if (!class_exists('MB_Reorder_Post')) {
             //hook for new blog on multisite
             add_action('wpmu_new_blog', 'multisite_new_blog', 10, 6);
             // hook for desactivation
-            register_deactivation_hook(__FILE__, array(&$this, 'reorder_post_uninstall'));
+            register_deactivation_hook(MB_REORDER_POST_FILE, array(&$this, 'reorder_post_uninstall'));
             // hook for activation
-            register_activation_hook(__FILE__, array(&$this, 'reorder_post_install'));
+            register_activation_hook(MB_REORDER_POST_FILE, array(&$this, 'reorder_post_install'));
             // Link to the setting page
-            $plugin = plugin_basename(__FILE__);
+            $plugin = plugin_basename(MB_REORDER_POST_FILE);
             add_filter("plugin_action_links_$plugin", array(&$this, 'display_settings_link'));
 
             //hook for notices
@@ -46,9 +46,9 @@ if (!class_exists('MB_Reorder_Post')) {
             add_action('wp_ajax_cat_ordered_changed', array(&$this, 'cat_order_changed'));
             add_action('wp_ajax_user_ordering', array(&$this, 'user_ordering'));
 
-            add_action('save_post', array(&$this, 'savePost_callBack'));
-            add_action('before_delete_post', array(&$this, 'deletePost_callBack'));
-            add_action('trashed_post', array(&$this, 'deletePost_callBack'));
+            add_action('save_post', array(&$this, 'save_post_callback'));
+            add_action('before_delete_post', array(&$this, 'delete_post_callback'));
+            add_action('trashed_post', array(&$this, 'delete_post_callback'));
 
             add_action('mb_rp_delete_unnecessary_entry', array(&$this, 'mb_rp_delete_unnecessary_entry'));
 
@@ -65,7 +65,7 @@ if (!class_exists('MB_Reorder_Post')) {
             if (empty($options)) {
                 ?>
                 <div class="updated re_order">
-                    <p><?php echo sprintf(__('First of all, you need to <a href="%s">save your settings for <em>ReOrder Posts in Categories</em></a>.', 'reorder-post'), admin_url('options-general.php?page=reorder-posts-within-categories.php')); ?></p>
+                    <p><?php echo sprintf(__('First of all, you need to <a href="%s">save your settings for <em>Reorder Post</em></a>.', 'reorder-post'), admin_url('options-general.php?page=reorder-post.php')); ?></p>
                 </div>
                 <?php
             }
@@ -161,7 +161,7 @@ if (!class_exists('MB_Reorder_Post')) {
          * When a post is deleted we remove all entries from the custom table
          * @param type $post_id
          */
-        public function deletePost_callBack($post_id)
+        public function delete_post_callback($post_id)
         {
             global $wpdb;
             $table_name = $wpdb->prefix . $this->mb_reorder_post_table_name;
@@ -174,7 +174,7 @@ if (!class_exists('MB_Reorder_Post')) {
          * We need to inspect all associated taxonomies
          * @param type $post_id
          */
-        public function savePost_callBack($post_id)
+        public function save_post_callback($post_id)
         {
             $ordered_setting_options = $this->get_admin_options();
             if (empty($ordered_setting_options)) {
@@ -266,16 +266,16 @@ if (!class_exists('MB_Reorder_Post')) {
                     $blogids = $wpdb->get_col("SELECT blog_id FROM $wpdb->blogs");
                     foreach ($blogids as $blog_id) {
                         switch_to_blog($blog_id);
-                        $this->_reorder_post_install();
+                        $this->reorder_post_install_action();
                     }
                     switch_to_blog($old_blog);
                     return;
                 }
             }
-            $this->_reorder_post_install();
+            $this->reorder_post_install_action();
         }
 
-        private function _reorder_post_install()
+        private function reorder_post_install_action()
         {
             global $wpdb;
             $table_name = $wpdb->prefix . $this->mb_reorder_post_table_name;
@@ -297,10 +297,10 @@ if (!class_exists('MB_Reorder_Post')) {
         {
             global $wpdb;
 
-            if (is_plugin_active_for_network('reorder-post/reorder-posts-within-categories.php')) {
+            if (is_plugin_active_for_network('reorder-post/reorder-post.php')) {
                 $old_blog = $wpdb->blogid;
                 switch_to_blog($blog_id);
-                $this->_reorder_post_install();
+                $this->reorder_post_install_action();
                 switch_to_blog($old_blog);
             }
         }
@@ -350,9 +350,10 @@ if (!class_exists('MB_Reorder_Post')) {
 
         public function user_ordering()
         {
-            if (!isset($_POST['mb_user_ordering_nonce']) || !wp_verify_nonce($_POST['mb_user_ordering_nonce'], 'nonce-UserOrderingChange')) {
+            if (!isset($_POST['mb_user_ordering_nonce']) || !wp_verify_nonce($_POST['mb_user_ordering_nonce'], 'nonce_user_ordering_change')) {
                 return;
             }
+
 
             global $wpdb;
             $order = explode(",", $_POST['order']);
@@ -486,9 +487,9 @@ if (!class_exists('MB_Reorder_Post')) {
             wp_enqueue_style("reOrderDeefuse", MB_REORDER_POST_URL.'/assets/css/reorder-post.css',array());
             wp_enqueue_script('deefusereorderAjax', MB_REORDER_POST_URL . '/assets/js/reorder-post.js', array('jquery'));
             wp_enqueue_script('jquery-ui-sortable', '/wp-includes/js/jquery/ui/jquery.ui.sortable.min.js', array('jquery-ui-core', 'jquery-ui-mouse'), '1.8.20', 1);
-            wp_localize_script('deefusereorderAjax', 'deefusereorder_vars', array(
-                'deefuseNounceCatReOrder' => wp_create_nonce('nonce_category_ordered_change'),
-                'mb_user_ordering_nonce' => wp_create_nonce('nonce-UserOrderingChange')
+            wp_localize_script('deefusereorderAjax', 'mb_user_reorder_vars', array(
+                'mb_use_nounce_cat_reorder' => wp_create_nonce('nonce_category_ordered_change'),
+                'mb_user_ordering_nonce' => wp_create_nonce('nonce_user_ordering_change')
             ));
         }
 
@@ -745,7 +746,7 @@ if (!class_exists('MB_Reorder_Post')) {
         /**
          *
          */
-        public function printAdminPage()
+        public function admin_page_ui()
         {
             if (!empty($_POST) && check_admin_referer('updateOptionSettings', 'nounceUpdateOptionReorder') && wp_verify_nonce($_POST['nounceUpdateOptionReorder'], 'updateOptionSettings')) {
                 do_action("mb_rp_delete_unnecessary_entry"); ?>
@@ -824,7 +825,7 @@ if (!class_exists('MB_Reorder_Post')) {
         public function add_setting_page()
         {
             if (function_exists('add_options_page')) {
-                add_options_page(__('ReOrder Post within Categories', 'reorder-post'), __('ReOrder Post', 'reorder-post'), 'manage_options', basename(__FILE__), array(&$this, 'printAdminPage'));
+                add_options_page(__('Re Order Post within Categories', 'reorder-post'), __('Re Order Post', 'reorder-post'), 'manage_options', basename(MB_REORDER_POST_FILE), array(&$this, 'admin_page_ui'));
             }
         }
 
@@ -833,7 +834,7 @@ if (!class_exists('MB_Reorder_Post')) {
          */
         public function display_settings_link($links)
         {
-            $settings_link = '<a href="options-general.php?page=reorder-posts-within-categories.php">' . __('Settings', 'reorder-post') . '</a>';
+            $settings_link = '<a href="options-general.php?page=reorder-post.php">' . __('Settings', 'reorder-post') . '</a>';
             array_unshift($links, $settings_link);
             return $links;
         }

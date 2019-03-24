@@ -25,7 +25,7 @@ function initMainForm(){
 					'action'					: 'user_ordering',
 					'order'						: jQuery(this).sortable('toArray').toString(),
 					'category'					: jQuery(this).attr("rel"),
-					'deefuseNounceUserOrdering'	: deefusereorder_vars.deefuseNounceUserOrdering
+					'mb_use_nounce_user_ordering'	: mb_user_reorder_vars.mb_use_nounce_user_ordering
 				}
 				jQuery.post(ajaxurl, data, function (response){
 					//alert(response);
@@ -46,7 +46,7 @@ function initMainForm(){
 				'action'					: 'user_ordering',
 				'order'						: jQuery("#sortable-list").sortable('toArray').toString(),
 				'category'					: jQuery("#sortable-list").attr("rel"),
-				'deefuseNounceUserOrdering'	: deefusereorder_vars.deefuseNounceUserOrdering
+				'mb_use_nounce_user_ordering'	: mb_user_reorder_vars.mb_use_nounce_user_ordering
 			}
 			jQuery.post(ajaxurl, data, function (response){
 				//alert(response);
@@ -62,7 +62,7 @@ function initMainForm(){
 			'action'				: 'cat_ordered_changed',
 			'current_cat'			: jQuery("#termIDCat").val(),
 			'valueForManualOrder'	: jQuery("#form_result input.option_order:checked").val(),
-			'deefuseNounceOrder'	: deefusereorder_vars.deefuseNounceCatReOrder
+			'deefuseNounceOrder'	: mb_user_reorder_vars.mb_use_nounce_cat_reorder
 		}
 		
 		jQuery.post(ajaxurl, data, function (response){

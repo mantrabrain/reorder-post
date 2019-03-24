@@ -13,6 +13,7 @@
 if (!defined('ABSPATH'))
     exit;
 
+define('MB_REORDER_POST_FILE', __FILE__);
 define('MB_REORDER_POST_URL', plugins_url('', __FILE__));
 define('MB_REORDER_POST_PATH', plugin_dir_path(__FILE__));
 
